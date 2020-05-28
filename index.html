@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://npmcdn.com/leaflet@0.7.7/dist/leaflet.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+    <meta charset="utf-8">
+    <style>
+        #mapid {
+            height: 100vh;
+            width: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <v-app id="inspire">
+            <v-row justify="center">
+                <v-dialog v-model="user.dialog" persistent max-width="600px">
+                    <v-card>
+                        <v-card-title>
+                            <span class="headline">User Profile</span>
+                        </v-card-title>
+                        <v-tabs v-model="user.tab" background-color="transparent" color="basil" grow>
+                            <v-tab>
+                                Login
+                            </v-tab>
+                            <v-tab>
+                                Sign Up
+                            </v-tab>
+                        </v-tabs>
+
+                        <v-tabs-items v-model="user.tab">
+                            <v-tab-item>
+                                <v-form ref="login_form" v-model="login.valid" lazy-validation>
+                                    <v-card color="basil" flat>
+                                        <v-card-text>
+                                            <v-container>
+                                                <v-row>
+                                                    <v-col cols="12">
+                                                        <v-text-field :rules="[rules.required]" v-model="user.account"
+                                                            label="Account*" required>
+                                                        </v-text-field>
+                                                    </v-col>
+                                                    <v-col cols="12">
+                                                        <v-text-field :rules="[rules.required]" v-model="user.password"
+                                                            :append-icon="login.pwshow ? 'mdi-eye' : 'mdi-eye-off'"
+                                                            :type="login.pwshow ? 'text' : 'password'" label="Password*"
+                                                            @click:append="login.pwshow = !login.pwshow" required>
+                                                        </v-text-field>
+                                                    </v-col>
+                                                </v-row>
+                                            </v-container>
+                                            <small>*indicates required field</small>
+                                        </v-card-text>
+                                        <v-card-actions>
+                                            <v-spacer></v-spacer>
+                                            <v-btn color="blue darken-1" :loading="login.loading"
+                                                :disabled="login.loading" text @click="Login">Login
+                                            </v-btn>
+                                        </v-card-actions>
+                                    </v-card>
+                                </v-form>
+                            </v-tab-item>
+                            <v-tab-item>
+                                <v-form ref="signup_form" v-model="signup.valid" lazy-validation>
+                                    <v-card color="basil" flat>
+                                        <v-card-text>
+                                            <v-container>
+                                                <v-row>
+                                                    <v-col cols="12" sm="6" md="4">
+                                                        <v-text-field :rules="[rules.required]" v-model="user.name"
+                                                            label="User Name*" required>
+                                                        </v-text-field>
+                                                    </v-col>
+                                                    <v-col cols="12" sm="6" md="4">
+                                                        <v-text-field :rules="[rules.required]" v-model="user.account"
+                                                            label="Account*" required>
+                                                        </v-text-field>
+                                                    </v-col>
+                                                    <v-col cols="12">
+                                                        <v-text-field :rules="[rules.required]" v-model="user.password"
+                                                            :append-icon="signup.pwshow ? 'mdi-eye' : 'mdi-eye-off'"
+                                                            :type="signup.pwshow ? 'text' : 'password'"
+                                                            label="Password*"
+                                                            @click:append="signup.pwshow = !signup.pwshow" required>
+                                                        </v-text-field>
+                                                    </v-col>
+                                                </v-row>
+                                            </v-container>
+                                        </v-card-text>
+                                        <v-card-text>
+                                            <small>*indicates required field</small>
+                                        </v-card-text>
+                                        <v-card-actions>
+                                            <v-spacer></v-spacer>
+                                            <v-btn color="blue darken-1" :loading="signup.loading"
+                                                :disabled="signup.loading" text @click="SignUp">Sign Up</v-btn>
+                                        </v-card-actions>
+                                    </v-card>
+                                </v-form>
+                            </v-tab-item>
+                        </v-tabs-items>
+                    </v-card>
+                </v-dialog>
+                <v-dialog v-model="room.dialog" persistent max-width="600px">
+                    <v-card>
+                        <v-card-title>
+                            <span class="headline">Room</span>
+                        </v-card-title>
+
+                        <v-card color="basil" flat>
+                            <v-card-actions>
+                                <v-container fill-height fluid>
+                                    <v-row align="center" justify="center">
+                                        <v-col>
+                                            <v-row class="ml-10 mr-10" align="center" justify="center">
+                                                <v-btn block tile outlined color="red" @click="CreateRoom">
+                                                    <v-icon left>mdi-home-plus</v-icon> Create Room
+                                                </v-btn>
+                                            </v-row>
+                                            <v-divider class="mt-10 mb-10"></v-divider>
+                                            <v-row class="ml-10 mr-10 mb-0" align="center" justify="center">
+                                                <v-text-field v-model="room.key" class="ma-0 pa-0" label="Room Key"
+                                                    dense hide-details shaped outlined>
+                                                </v-text-field>
+                                            </v-row>
+                                            <v-row class="ml-10 mr-10 mt-0" align="center" justify="center">
+                                                <v-btn class="ma-0 pa-0" block tile outlined color="blue">
+                                                    <v-icon left>mdi-location-enter</v-icon> Enter Room
+                                                </v-btn>
+                                            </v-row>
+                                        </v-col>
+                                    </v-row>
+                                </v-container>
+                            </v-card-actions>
+                        </v-card>
+                    </v-card>
+                </v-dialog>
+                <v-dialog v-model="msg.dialog" persistent max-width="600px">
+                    <v-card>
+                        <v-card-title>
+                            <span class="headline">{{msg.title}}</span>
+                        </v-card-title>
+
+                        <v-card color="basil" flat>
+                            <v-card-text>
+                                {{msg.content}}
+                            </v-card-text>
+                        </v-card>
+                        <v-card-actions>
+                            <v-spacer></v-spacer>
+                            <v-btn color="blue darken-1" text @click="msg.dialog = !msg.dialog">OK
+                            </v-btn>
+                        </v-card-actions>
+                    </v-card>
+                </v-dialog>
+            </v-row>
+        </v-app>
+    </div>
+    <div id="mapid"></div>
+    <script src="./js/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+    <script src="https://npmcdn.com/leaflet@0.7.7/dist/leaflet.js"></script>
+    <script src="./js/main.js"></script>
+</body>
+
+</html>
