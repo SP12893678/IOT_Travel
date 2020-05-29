@@ -76,6 +76,19 @@
                                             <v-container>
                                                 <v-row>
                                                     <v-col cols="12" sm="6" md="4">
+                                                        <v-select :items="icons" label="Icon" v-model="user.icon">
+                                                            <template v-slot:prepend-inner>
+                                                                <img width="24" height="24"
+                                                                    :src="'./res/img/' + user.icon + '.png'">
+                                                            </template>
+                                                            <template slot="item" slot-scope="data">
+                                                                <img width="24" height="24"
+                                                                    :src="'./res/img/' + data.item + '.png'">
+                                                                <v-card-text>{{data.item}}</v-card-text>
+                                                            </template>
+                                                        </v-select>
+                                                    </v-col>
+                                                    <v-col cols="12" sm="6" md="4">
                                                         <v-text-field :rules="[rules.required]" v-model="user.name"
                                                             label="User Name*" required>
                                                         </v-text-field>

@@ -5,6 +5,7 @@
 
     if($type == 'sign_up')
     {
+        $icon = $_GET['icon'];
         $name = $_GET['name'];
         $account = $_GET['account'];
         $password = $_GET['password'];
@@ -13,7 +14,7 @@
         $result = mysqli_query($con, $sql);
         if(mysqli_num_rows($result) == 0)
         {
-            $sql = "INSERT INTO `user`(`name`, `account`, `password`) VALUES ('".$name."','".$account."','".$password."')";
+            $sql = "INSERT INTO `user`(`icon`, `name`, `account`, `password`) VALUES ('".$icon."','".$name."','".$account."','".$password."')";
             $result = mysqli_query($con, $sql);
             echo "true";
         }

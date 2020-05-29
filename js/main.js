@@ -3,7 +3,7 @@ var app = new Vue({
     vuetify: new Vuetify(),
     data() {
         return {
-            icon: ["bull", "chicken", "dog", "dragon", "goat", "horse", "monkey", "pig", "rabbit", "rat", "snake", "tiger"],
+            icons: ["rat", "bull", "tiger", "rabbit", "dragon", "snake", "horse", "goat", "monkey", "chicken", "dog", "pig"],
             login: {
                 loading: false,
                 pwshow: false,
@@ -20,7 +20,7 @@ var app = new Vue({
                 name: null,
                 account: null,
                 password: null,
-                icon: null,
+                icon: "rat",
                 lat: null,
                 lng: null,
                 tab: null,
@@ -98,7 +98,7 @@ var app = new Vue({
                 .catch(err => console.log("Axios err: ", err));
         },
         checkSignUp: function () {
-            return axios.get('./php/travel.php', { params: { type: "sign_up", name: this.user.name, account: this.user.account, password: this.user.password } })
+            return axios.get('./php/travel.php', { params: { type: "sign_up", icon: this.user.icon, name: this.user.name, account: this.user.account, password: this.user.password } })
                 .then((res) => {
                     console.log(res.data);
                     this.signup.result = res.data;
@@ -133,6 +133,18 @@ var app = new Vue({
                     icon: this.user.icon,
                     lat: this.user.lat,
                     lng: this.user.lng,
+                }
+            }).then((res) => {
+                console.log(res.data);
+                this.room.enter = res.data;
+            }).catch((error) => { console.error(error) })
+        },
+        getRoomData: function () {
+            return axios.get('./php/travel.php', {
+                params:
+                {
+                    type: "room_data",
+                    roomkey: this.room.key,
                 }
             }).then((res) => {
                 console.log(res.data);
