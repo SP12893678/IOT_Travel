@@ -16,6 +16,11 @@
             left: 0;
             top: 0;
         }
+
+        .leaflet-top,
+        .leaflet-bottom {
+            z-index: 1;
+        }
     </style>
 </head>
 
@@ -128,33 +133,36 @@
                         <v-card-title>
                             <span class="headline">Room</span>
                         </v-card-title>
-
-                        <v-card color="basil" flat>
-                            <v-card-actions>
-                                <v-container fill-height fluid>
-                                    <v-row align="center" justify="center">
-                                        <v-col>
-                                            <v-row class="ml-10 mr-10" align="center" justify="center">
-                                                <v-btn block tile outlined color="red" @click="CreateRoom">
-                                                    <v-icon left>mdi-home-plus</v-icon> Create Room
-                                                </v-btn>
-                                            </v-row>
-                                            <v-divider class="mt-10 mb-10"></v-divider>
-                                            <v-row class="ml-10 mr-10 mb-0" align="center" justify="center">
-                                                <v-text-field v-model="room.key" class="ma-0 pa-0" label="Room Key"
-                                                    dense hide-details shaped outlined>
-                                                </v-text-field>
-                                            </v-row>
-                                            <v-row class="ml-10 mr-10 mt-0" align="center" justify="center">
-                                                <v-btn class="ma-0 pa-0" block tile outlined color="blue">
-                                                    <v-icon left>mdi-location-enter</v-icon> Enter Room
-                                                </v-btn>
-                                            </v-row>
-                                        </v-col>
-                                    </v-row>
-                                </v-container>
-                            </v-card-actions>
-                        </v-card>
+                        <v-form ref="room_form" v-model="room.valid" lazy-validation>
+                            <v-card color="basil" flat>
+                                <v-card-actions>
+                                    <v-container fill-height fluid>
+                                        <v-row align="center" justify="center">
+                                            <v-col>
+                                                <v-row class="ml-10 mr-10" align="center" justify="center">
+                                                    <v-btn block tile outlined color="red" @click="CreateRoom">
+                                                        <v-icon left>mdi-home-plus</v-icon> Create Room
+                                                    </v-btn>
+                                                </v-row>
+                                                <v-divider class="mt-10 mb-10"></v-divider>
+                                                <v-row class="ml-10 mr-10 mb-0" align="center" justify="center">
+                                                    <v-text-field v-model="room.key" class="ma-0 pa-0" label="Room Key"
+                                                        dense hide-details shaped outlined required
+                                                        :rules="[rules.required]">
+                                                    </v-text-field>
+                                                </v-row>
+                                                <v-row class="ml-10 mr-10 mt-0" align="center" justify="center">
+                                                    <v-btn class="ma-0 pa-0" block tile outlined color="blue"
+                                                        @click="EnterRoom">
+                                                        <v-icon left>mdi-location-enter</v-icon> Enter Room
+                                                    </v-btn>
+                                                </v-row>
+                                            </v-col>
+                                        </v-row>
+                                    </v-container>
+                                </v-card-actions>
+                            </v-card>
+                        </v-form>
                     </v-card>
                 </v-dialog>
                 <v-dialog v-model="msg.dialog" persistent max-width="600px">
@@ -175,13 +183,76 @@
                         </v-card-actions>
                     </v-card>
                 </v-dialog>
+                <v-dialog v-model="info.dialog" fullscreen hide-overlay transition="dialog-bottom-transition">
+                    <template v-slot:activator="{ on }">
+                        <v-btn color="primary" dark v-on="on">Open Dialog</v-btn>
+                    </template>
+                    <v-card>
+                        <v-toolbar dark color="primary">
+                            <v-btn icon dark @click="info.dialog = false">
+                                <v-icon>mdi-close</v-icon>
+                            </v-btn>
+                            <v-toolbar-title>Room Info</v-toolbar-title>
+                            <v-spacer></v-spacer>
+                        </v-toolbar>
+                        <v-list>
+                            <v-subheader>Room Key</v-subheader>
+                            <v-list-item @click="doCopy(111)">
+                                <v-list-item-avatar>
+                                    <v-icon>mdi-key-variant</v-icon>
+                                </v-list-item-avatar>
+
+                                <v-list-item-content>
+                                    <v-list-item-title> {{room.key}} </v-list-item-title>
+                                </v-list-item-content>
+
+                                <v-list-item-action>
+                                    <v-btn icon>
+                                        <v-icon color="grey lighten-1">mdi-content-copy</v-icon>
+                                    </v-btn>
+                                </v-list-item-action>
+                            </v-list-item>
+                            <v-divider></v-divider>
+                            <v-subheader>Member</v-subheader>
+                            <v-list-item v-for="member in room.members">
+                                <v-list-item-avatar>
+                                    <img width="24" height="24" :src="'./res/img/' + member.icon + '.png'">
+                                </v-list-item-avatar>
+
+                                <v-list-item-content>
+                                    <v-list-item-title v-text="member.name"></v-list-item-title>
+                                    <v-list-item-subtitle v-text="'('+ member.lat + ',' + member.lng + ')'">
+                                    </v-list-item-subtitle>
+                                </v-list-item-content>
+
+                                <v-list-item-action>
+                                    <v-btn icon @click="">
+                                        <v-icon color="grey lighten-1">mdi-card-search-outline</v-icon>
+                                    </v-btn>
+                                </v-list-item-action>
+                            </v-list-item>
+                        </v-list>
+                    </v-card>
+                </v-dialog>
             </v-row>
+            <v-bottom-navigation v-model="bottomNav" app grow>
+                <v-btn value="info" @click="info.dialog = true">
+                    <span>Info</span>
+                    <v-icon>mdi-account-details</v-icon>
+                </v-btn>
+
+                <v-btn value="nearby" @click="info.dialog = false">
+                    <span>Nearby</span>
+                    <v-icon>mdi-map-marker</v-icon>
+                </v-btn>
+            </v-bottom-navigation>
         </v-app>
     </div>
     <div id="mapid"></div>
     <script src="./js/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js"></script>
     <script src="https://npmcdn.com/leaflet@0.7.7/dist/leaflet.js"></script>
     <script src="./js/main.js"></script>
 </body>

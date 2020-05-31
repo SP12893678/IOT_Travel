@@ -56,7 +56,7 @@
                 break;
         }
         
-        $sql = "CREATE TABLE room_". $roomkey ."(account TEXT(12),name TEXT(12),icon TEXT(12),lat FLOAT(20),lng FLOAT(20))";
+        $sql = "CREATE TABLE room_". $roomkey ."(account VARCHAR(12),name VARCHAR(12),icon VARCHAR(12),lat FLOAT(20),lng FLOAT(20))";
         $result = mysqli_query($con, $sql);
         echo $roomkey;
     }
@@ -72,10 +72,47 @@
             $icon = $_GET['icon'];
             $lat = $_GET['lat'];
             $lng = $_GET['lng'];
-
-            $sql = "INSERT INTO 'room_". $roomkey ."'(`account`, `name`, `icon`,`lat`, `lng`) VALUES ('".$account."','".$name."','".$icon."','". $lat ."','". $lng ."')";
+            $sql = "SELECT * FROM room_". $roomkey ." WHERE account = '".$account."'";
             $result = mysqli_query($con, $sql);
-            echo $result;
+            if(mysqli_num_rows($result) == 1)
+            {
+                $sql = "UPDATE `room_". $roomkey ."` SET `account`='".$account."',`name`='".$name."',`icon`='".$icon."',`lat`=".$lat.",`lng`=".$lng." WHERE account = '". $account ."'";
+            }
+            else if(mysqli_num_rows($result) == 0)
+            {
+                $sql = "INSERT INTO room_". $roomkey ."(`account`, `name`, `icon`,`lat`, `lng`) VALUES ('".$account."','".$name."','".$icon."',". $lat .",". $lng .")";
+            }
+            $result = mysqli_query($con, $sql);
+            echo ($result == 1)?"true":"false";
+        }
+        else
+        {
+            echo "false";
+        }
+    }
+    else if($type == 'room_data')
+    {
+        $roomkey = $_GET['roomkey'];
+        $sql = "SHOW TABLES LIKE 'room_". $roomkey ."'";
+        $result = mysqli_query($con, $sql);
+        if(mysqli_num_rows($result) == 1)
+        {
+            $sql = "SELECT * FROM room_". $roomkey;
+            $result = mysqli_query($con, $sql);
+            $count = 0;
+            $total = mysqli_num_rows($result);
+            $room_data = "";
+            while($row = mysqli_fetch_array($result))
+            {
+                $count++;
+                $room_data .= json_encode($row, JSON_UNESCAPED_UNICODE);
+                $room_data .=($count < $total && $count != $total)?',':'';
+            }
+            $room_data = "[".$room_data."]";
+            $data = [];
+            $data["result"] = "true";
+            $data["data"] = $room_data;
+            echo json_encode($data, JSON_UNESCAPED_UNICODE);
         }
         else
         {

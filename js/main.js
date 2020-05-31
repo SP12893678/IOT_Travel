@@ -3,6 +3,7 @@ var app = new Vue({
     vuetify: new Vuetify(),
     data() {
         return {
+            bottomNav: 'nearby',
             icons: ["rat", "bull", "tiger", "rabbit", "dragon", "snake", "horse", "goat", "monkey", "chicken", "dog", "pig"],
             login: {
                 loading: false,
@@ -21,8 +22,8 @@ var app = new Vue({
                 account: null,
                 password: null,
                 icon: "rat",
-                lat: null,
-                lng: null,
+                lat: 120,
+                lng: 23,
                 tab: null,
                 dialog: false,
             },
@@ -30,11 +31,17 @@ var app = new Vue({
                 dialog: false,
                 key: null,
                 enter: false,
+                members: [],
+                result: false,
+                valid: true,
             },
             msg: {
                 dialog: false,
                 title: "error",
                 content: "error message",
+            },
+            info: {
+                dialog: false,
             },
             rules: {
                 required: value => !!value || 'Required.',
@@ -93,9 +100,25 @@ var app = new Vue({
             this.EnterRoom();
         },
         EnterRoom: async function () {
-            await this.checkEnterRoom()
-                .then((returnVal) => { console.log('<--finish checkEnterRoom-->'); })
-                .catch(err => console.log("Axios err: ", err));
+            if (this.$refs.room_form.validate()) {
+                await this.checkEnterRoom()
+                    .then((returnVal) => { console.log('<--finish checkEnterRoom-->'); })
+                    .catch(err => console.log("Axios err: ", err));
+                if (this.room.enter)
+                    this.getRoomData();
+                this.updatedData();
+            }
+        },
+        updatedData: async function () {
+
+            var timeoutID = setInterval((async function () {
+                app.checkEnterRoom()
+                    .then((returnVal) => { console.log('<--finish checkEnterRoom-->'); })
+                    .catch(err => console.log("Axios err: ", err));
+                await app.getRoomData()
+                    .then((returnVal) => { console.log('<--finish getRoomData-->'); })
+                    .catch(err => console.log("Axios err: ", err));
+            }), 5000);
         },
         checkSignUp: function () {
             return axios.get('./php/travel.php', { params: { type: "sign_up", icon: this.user.icon, name: this.user.name, account: this.user.account, password: this.user.password } })
@@ -137,6 +160,7 @@ var app = new Vue({
             }).then((res) => {
                 console.log(res.data);
                 this.room.enter = res.data;
+                this.room.dialog = (!this.room.enter);
             }).catch((error) => { console.error(error) })
         },
         getRoomData: function () {
@@ -147,10 +171,21 @@ var app = new Vue({
                     roomkey: this.room.key,
                 }
             }).then((res) => {
-                console.log(res.data);
-                this.room.enter = res.data;
+                // console.log(JSON.parse(res.data.data));
+                // console.log(res.data);
+                this.room.result = res.data.result;
+                this.room.members = JSON.parse(res.data.data);
             }).catch((error) => { console.error(error) })
         },
+        doCopy: function (msg) {
+            this.$copyText(msg).then(function (e) {
+                alert('Copied')
+                console.log(e)
+            }, function (e) {
+                alert('Can not copy')
+                console.log(e)
+            })
+        }
     },
     mounted: function () {
         this.user.dialog = true;
@@ -160,7 +195,7 @@ var app = new Vue({
 // 建立 Leaflet 地圖
 var map = L.map('mapid');
 L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://github.com/SP12893678/SP12893678.github.io">SP12893678.github</a>',
+    // attribution: '&copy; <a href="https://github.com/SP12893678/SP12893678.github.io">SP12893678.github</a>',
     maxNativeZoom: 19,
     maxZoom: 25,
     enableHighAccuracy: true
