@@ -1,24 +1,3 @@
-
-class doCopy {
-    constructor(textToCopy) {
-        this.copied = false;
-        var textarea = document.createElement('textarea');
-        textarea.value = textToCopy;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'absolute';
-        textarea.style.left = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-            var successful = document.execCommand('copy');
-            this.copied = true;
-        }
-        catch (err) {
-            this.copied = false;
-        }
-        textarea.remove();
-    }
-}
 // 建立 Leaflet 地圖
 var map = L.map('mapid');
 L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
@@ -45,24 +24,29 @@ function getLIcon(icon) {
 
 // map.setView(new L.LatLng(23.501858272317656, 120.8221435546875), 8);
 
-function onLocationFound(e) {
-    app.user.lat = e.latlng.lat;
-    app.user.lng = e.latlng.lng;
-    console.log(app.user.lat, app.user.lng)
-}
+// function onLocationFound(e) {
+//     app.user.lat = e.latlng.lat;
+//     app.user.lng = e.latlng.lng;
+//     console.log(app.user.lat, app.user.lng)
+// }
 
-function onLocationError(e) {
+// function onLocationError(e) {
 
-}
+// }
 
-map.on('locationerror', onLocationError);
-map.on('locationfound', onLocationFound);
+// map.on('locationerror', onLocationError);
+// map.on('locationfound', onLocationFound);
 
 var app = new Vue({
     el: '#app',
     vuetify: new Vuetify(),
     data() {
         return {
+            tooltip: {
+                show: false,
+                content: null,
+            },
+            updateId: null,
             bottomNav: 'nearby',
             icons: ["rat", "bull", "tiger", "rabbit", "dragon", "snake", "horse", "goat", "monkey", "chicken", "dog", "pig"],
             login: {
@@ -116,8 +100,8 @@ var app = new Vue({
         Login: async function () {
             this.login.loading = true;
             if (this.$refs.login_form.validate()) {
-                await this.checkLogin()
-                    .then((returnVal) => { console.log('<--finish checkLogin-->'); })
+                await this.verifyLogin()
+                    .then((returnVal) => { console.log('<--finish verifyLogin-->'); })
                     .catch(err => console.log("Axios err: ", err));
                 console.log('click')
                 this.login.loading = false;
@@ -173,9 +157,17 @@ var app = new Vue({
                 this.updatedData();
             }
         },
+        ExitRoom: function () {
+            if (this.room.key != null) {
+                clearInterval(this.updateId);
+                this.leaveRoom();
+                this.room.key = null;
+                this.room.dialog = true;
+            }
+        },
         updatedData: async function () {
 
-            var timeoutID = setInterval((async function () {
+            this.updateId = setInterval((async function () {
                 app.checkEnterRoom()
                     .then((returnVal) => { console.log('<--finish checkEnterRoom-->'); })
                     .catch(err => console.log("Axios err: ", err));
@@ -194,6 +186,14 @@ var app = new Vue({
 
             }), 5000);
         },
+        checkSessionData: function () {
+            return axios.get('./php/travel.php', { params: { type: "get_session", } })
+                .then((res) => {
+                    console.log(res.data);
+
+                })
+                .catch((error) => { console.error(error) })
+        },
         checkSignUp: function () {
             return axios.get('./php/travel.php', { params: { type: "sign_up", icon: this.user.icon, name: this.user.name, account: this.user.account, password: this.user.password } })
                 .then((res) => {
@@ -202,8 +202,8 @@ var app = new Vue({
                 })
                 .catch((error) => { console.error(error) })
         },
-        checkLogin: function () {
-            return axios.get('./php/travel.php', { params: { type: "login", account: this.user.account, password: this.user.password } })
+        verifyLogin: function () {
+            return axios.get('./php/travel.php', { params: { type: "verify_login", account: this.user.account, password: this.user.password } })
                 .then((res) => {
                     console.log(res.data);
                     this.user.name = res.data.name;
@@ -253,15 +253,7 @@ var app = new Vue({
                 this.room.members = JSON.parse(res.data.data);
             }).catch((error) => { console.error(error) })
         },
-        copyToClipboard: function (copyText) {
-            new doCopy(copyText);
-        },
-        viewMember: function (account) {
-            var view_member = this.room.members.find(member => member.account == account);
-            this.info.dialog = false;
-            map.setView(new L.LatLng(view_member.lat, view_member.lng), 14);
-        },
-        leavePage: function () {
+        leaveRoom: function () {
             if (this.room.key != null)
                 return axios.get('./php/travel.php', {
                     params:
@@ -274,22 +266,34 @@ var app = new Vue({
                     // console.log(res.data);
                 }).catch((error) => { console.error(error) })
 
-        }
+        },
+        viewMember: function (account) {
+            var view_member = this.room.members.find(member => member.account == account);
+            this.info.dialog = false;
+            map.setView(new L.LatLng(view_member.lat, view_member.lng), 14);
+        },
+        copyRoomKey() {
+            let textToCopy = this.$refs.roomkey.$el.querySelector('input')
+            textToCopy.select()
+            document.execCommand("copy");
+            if (window.getSelection) { window.getSelection().removeAllRanges(); }
+            else if (document.selection) { document.selection.empty(); }
+            this.tooltip.content = "Copy!";
+            this.tooltip.show = true;
+            window.setTimeout((() => app.tooltip.show = false), 1500);
+        },
     },
     mounted: function () {
         this.user.dialog = true;
     },
     created: function () {
         $(window).bind('beforeunload', async function (e) {
-            await app.leavePage();
+            await app.leaveRoom();
         })
     },
     beforeDestroy: function () {
-        this.leavePage();
+        this.leaveRoom();
     },
-    // destroyed() {
-    //     window.removeEventListener('beforeunload', this.leavePage)
-    // },
 })
 
 

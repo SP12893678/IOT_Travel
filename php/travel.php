@@ -1,9 +1,14 @@
 <?php
+    session_start();
     $con = mysqli_connect("localhost","root","","travel");
     $con->query("set names utf8");
     $type = $_GET['type'];
 
-    if($type == 'sign_up')
+    if($type == 'get_session')
+    {
+        // $_SESSION['UserName']='Jordan';
+    }
+    else if($type == 'sign_up')
     {
         $icon = $_GET['icon'];
         $name = $_GET['name'];
@@ -23,7 +28,7 @@
             echo "false";
         }
     }
-    else if($type == 'login')
+    else if($type == 'verify_login')
     {
         $account = $_GET['account'];
         $password = $_GET['password'];

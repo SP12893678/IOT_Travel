@@ -8,20 +8,7 @@
     <link rel="stylesheet" href="https://npmcdn.com/leaflet@0.7.7/dist/leaflet.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
     <meta charset="utf-8">
-    <style>
-        #mapid {
-            height: 100vh;
-            width: 100%;
-            position: absolute;
-            left: 0;
-            top: 0;
-        }
-
-        .leaflet-top,
-        .leaflet-bottom {
-            z-index: 1;
-        }
-    </style>
+    <link rel="stylesheet" href="./css/style.css">
 </head>
 
 <body>
@@ -197,13 +184,16 @@
                         </v-toolbar>
                         <v-list>
                             <v-subheader>Room Key</v-subheader>
-                            <v-list-item @click="copyToClipboard('1111')">
+                            <v-list-item @click="copyRoomKey">
                                 <v-list-item-avatar>
                                     <v-icon>mdi-key-variant</v-icon>
                                 </v-list-item-avatar>
 
                                 <v-list-item-content>
-                                    <v-list-item-title> {{room.key}} </v-list-item-title>
+                                    <v-list-item-title>
+                                        <v-text-field v-model="room.key" ref="roomkey" solo flat hide-details readonly>
+                                        </v-text-field>
+                                    </v-list-item-title>
                                 </v-list-item-content>
 
                                 <v-list-item-action>
@@ -235,17 +225,27 @@
                     </v-card>
                 </v-dialog>
             </v-row>
-            <v-bottom-navigation v-model="bottomNav" app grow>
-                <v-btn value="info" @click="info.dialog = true">
-                    <span>Info</span>
-                    <v-icon>mdi-account-details</v-icon>
-                </v-btn>
+            <v-tooltip v-model="tooltip.show" top z-index="300">
+                <template v-slot:activator="{ on }">
+                    <v-bottom-navigation v-model="bottomNav" app grow>
+                        <v-btn value="info" @click="info.dialog = true">
+                            <span>Info</span>
+                            <v-icon>mdi-account-details</v-icon>
+                        </v-btn>
 
-                <v-btn value="nearby" @click="info.dialog = false">
-                    <span>Nearby</span>
-                    <v-icon>mdi-map-marker</v-icon>
-                </v-btn>
-            </v-bottom-navigation>
+                        <v-btn value="nearby" @click="info.dialog = false">
+                            <span>Nearby</span>
+                            <v-icon>mdi-map-marker</v-icon>
+                        </v-btn>
+
+                        <v-btn value="nearby" @click="ExitRoom">
+                            <span>Exit Room</span>
+                            <v-icon>mdi-location-exit</v-icon>
+                        </v-btn>
+                    </v-bottom-navigation>
+                </template>
+                <span>{{tooltip.content}}</span>
+            </v-tooltip>
         </v-app>
     </div>
     <div id="mapid"></div>
