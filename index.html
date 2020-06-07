@@ -197,7 +197,7 @@
                         </v-toolbar>
                         <v-list>
                             <v-subheader>Room Key</v-subheader>
-                            <v-list-item @click="doCopy(111)">
+                            <v-list-item @click="copyToClipboard('1111')">
                                 <v-list-item-avatar>
                                     <v-icon>mdi-key-variant</v-icon>
                                 </v-list-item-avatar>
@@ -226,7 +226,7 @@
                                 </v-list-item-content>
 
                                 <v-list-item-action>
-                                    <v-btn icon @click="">
+                                    <v-btn icon @click="viewMember(member.account)">
                                         <v-icon color="grey lighten-1">mdi-card-search-outline</v-icon>
                                     </v-btn>
                                 </v-list-item-action>
@@ -254,6 +254,7 @@
     <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js"></script>
     <script src="https://npmcdn.com/leaflet@0.7.7/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="./js/main.js"></script>
 </body>
 

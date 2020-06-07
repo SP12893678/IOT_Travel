@@ -119,6 +119,21 @@
             echo "false";
         }
     }
+    else if($type == 'exit_room')
+    {
+        $roomkey = $_GET['roomkey'];
+        $account = $_GET['account'];
+        $sql = "DELETE FROM room_". $roomkey ." WHERE account = '".$account."'";
+        // $sql = "DELETE FROM `room_erkvb` WHERE account = 'test666'";
+        $result = mysqli_query($con, $sql);
+        $sql = "SELECT * FROM room_". $roomkey ." WHERE 1";
+        $result = mysqli_query($con, $sql);
+        if(mysqli_num_rows($result) == 0)
+        {
+            $sql = "DROP TABLE room_". $roomkey;
+            $result = mysqli_query($con, $sql);
+        }
+    }
 
 function getRandomKey($length)
 {
