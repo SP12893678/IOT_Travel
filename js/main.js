@@ -20,22 +20,36 @@ function getLIcon(icon) {
     });
 }
 
-// L.marker([23.501858272317656, 120.8221435546875], { icon: getLIcon("rat") }).addTo(map).bindPopup("I am a green leaf.");
+var id, target, options;
 
-// map.setView(new L.LatLng(23.501858272317656, 120.8221435546875), 8);
+function success(pos) {
+    var crd = pos.coords;
+    app.user.lat = pos.coords.latitude;
+    app.user.lng = pos.coords.longitude;
+    console.log(app.user.lat + "." + app.user.lng)
+    if (target.latitude === crd.latitude && target.longitude === crd.longitude) {
+        console.log('Congratulations, you reached the target');
+        navigator.geolocation.clearWatch(id);
+    }
+}
 
-// function onLocationFound(e) {
-//     app.user.lat = e.latlng.lat;
-//     app.user.lng = e.latlng.lng;
-//     console.log(app.user.lat, app.user.lng)
-// }
+function error(err) {
+    console.warn('ERROR(' + err.code + '): ' + err.message);
+}
 
-// function onLocationError(e) {
+target = {
+    latitude: 0,
+    longitude: 0
+};
 
-// }
+options = {
+    enableHighAccuracy: true,
+    timeout: 5000,
+    maximumAge: 0
+};
 
-// map.on('locationerror', onLocationError);
-// map.on('locationfound', onLocationFound);
+id = navigator.geolocation.watchPosition(success, error, options);
+
 
 var app = new Vue({
     el: '#app',
@@ -47,6 +61,7 @@ var app = new Vue({
                 content: null,
             },
             updateId: null,
+            copyId: null,
             bottomNav: 'nearby',
             icons: ["rat", "bull", "tiger", "rabbit", "dragon", "snake", "horse", "goat", "monkey", "chicken", "dog", "pig"],
             login: {
@@ -76,7 +91,6 @@ var app = new Vue({
                 key: null,
                 enter: false,
                 members: [],
-                result: false,
                 valid: true,
             },
             msg: {
@@ -100,18 +114,20 @@ var app = new Vue({
         Login: async function () {
             this.login.loading = true;
             if (this.$refs.login_form.validate()) {
-                await this.verifyLogin()
-                    .then((returnVal) => { console.log('<--finish verifyLogin-->'); })
+                await this.post_SignIn()
+                    .then((returnVal) => { console.log('<--finish Login-->'); })
                     .catch(err => console.log("Axios err: ", err));
-                console.log('click')
                 this.login.loading = false;
                 if (this.login.result) {
+                    this.tooltip.content = "Login Successed!";
+                    this.tooltip.show = true;
+                    this.copyId = window.setTimeout((() => app.tooltip.show = false), 1500);
                     this.user.dialog = false;
                     this.room.dialog = true;
+                    this.EnterRoom();
                 }
                 else {
                     this.msg.title = "Error"
-                    this.msg.content = "Login Failed";
                     this.msg.dialog = true;
                 }
             }
@@ -121,10 +137,9 @@ var app = new Vue({
         SignUp: async function () {
             this.signup.loading = true;
             if (this.$refs.signup_form.validate()) {
-                await this.checkSignUp()
-                    .then((returnVal) => { console.log('<--finish checkSignUp-->'); })
+                await this.post_SignUp()
+                    .then((returnVal) => { console.log('<--finish SignUp-->'); })
                     .catch(err => console.log("Axios err: ", err));
-                // console.log('click')
                 this.signup.loading = false;
                 if (this.signup.result) {
                     this.msg.title = "Successed"
@@ -134,44 +149,48 @@ var app = new Vue({
                 }
                 else {
                     this.msg.title = "Error"
-                    this.msg.content = "Sign Up Failed";
                     this.msg.dialog = true;
                 }
             }
             else
                 this.signup.loading = false;
         },
+        Logout: async function () {
+            this.user.password = null;
+            this.room.dialog = false;
+            this.user.dialog = true;
+        },
         CreateRoom: async function () {
-            await this.getRoomKey()
+            await this.post_CreatRoom()
                 .then((returnVal) => { console.log('<--finish getRoomKey-->'); })
                 .catch(err => console.log("Axios err: ", err));
             this.EnterRoom();
         },
         EnterRoom: async function () {
-            if (this.$refs.room_form.validate()) {
-                await this.checkEnterRoom()
-                    .then((returnVal) => { console.log('<--finish checkEnterRoom-->'); })
+            if (this.room.key != null && this.room.key != "") {
+                await this.post_EnterRoom()
+                    .then((returnVal) => { console.log('<--finish EnterRoom-->'); })
                     .catch(err => console.log("Axios err: ", err));
                 if (this.room.enter)
-                    this.getRoomData();
+                    this.post_GetRoomData();
                 this.updatedData();
             }
         },
-        ExitRoom: function () {
+        ExitRoom: async function () {
             if (this.room.key != null) {
                 clearInterval(this.updateId);
-                this.leaveRoom();
+                await this.post_LeaveRoom();
                 this.room.key = null;
+                this.room.enter = false;
                 this.room.dialog = true;
             }
         },
-        updatedData: async function () {
-
+        async updatedData() {
             this.updateId = setInterval((async function () {
-                app.checkEnterRoom()
-                    .then((returnVal) => { console.log('<--finish checkEnterRoom-->'); })
+                app.post_EnterRoom()
+                    .then((returnVal) => { console.log('<--finish EnterRoom-->'); })
                     .catch(err => console.log("Axios err: ", err));
-                await app.getRoomData()
+                await app.post_GetRoomData()
                     .then((returnVal) => { console.log('<--finish getRoomData-->'); })
                     .catch(err => console.log("Axios err: ", err));
                 app.room.members.forEach(member => {
@@ -186,42 +205,69 @@ var app = new Vue({
 
             }), 5000);
         },
-        checkSessionData: function () {
-            return axios.get('./php/travel.php', { params: { type: "get_session", } })
+        viewMember: function (account) {
+            var view_member = this.room.members.find(member => member.account == account);
+            this.info.dialog = false;
+            map.setView(new L.LatLng(view_member.lat, view_member.lng), 16);
+        },
+        copyRoomKey() {
+            let textToCopy = this.$refs.roomkey.$el.querySelector('input')
+            textToCopy.select()
+            document.execCommand("copy");
+            if (window.getSelection) { window.getSelection().removeAllRanges(); }
+            else if (document.selection) { document.selection.empty(); }
+
+            this.tooltip.show = false;
+            clearTimeout(this.copyId);
+            this.tooltip.content = "Copy!";
+            this.tooltip.show = true;
+            this.copyId = window.setTimeout((() => app.tooltip.show = false), 1500);
+        },
+        /*
+        * Post to server function
+        */
+        post_SignIn: function () {
+            return axios.get('./php/travel.php', { params: { type: "sign_in", account: this.user.account, password: this.user.password } })
                 .then((res) => {
                     console.log(res.data);
-
+                    this.login.result = (res.data.result == 'true');
+                    if (this.login.result) {
+                        this.user.name = res.data.data.name;
+                        this.user.icon = res.data.data.icon;
+                        this.user.account = res.data.data.account;
+                        this.room.key = res.data.data.room;
+                    }
+                    else {
+                        this.msg.content = res.data.error;
+                    }
                 })
                 .catch((error) => { console.error(error) })
         },
-        checkSignUp: function () {
+        post_SignUp: function () {
             return axios.get('./php/travel.php', { params: { type: "sign_up", icon: this.user.icon, name: this.user.name, account: this.user.account, password: this.user.password } })
                 .then((res) => {
                     console.log(res.data);
-                    this.signup.result = res.data;
+                    this.signup.result = (res.data.result == 'true');
+                    if (!this.signup.result)
+                        this.msg.content = res.data.error;
                 })
                 .catch((error) => { console.error(error) })
         },
-        verifyLogin: function () {
-            return axios.get('./php/travel.php', { params: { type: "verify_login", account: this.user.account, password: this.user.password } })
-                .then((res) => {
-                    console.log(res.data);
-                    this.user.name = res.data.name;
-                    this.user.icon = res.data.icon;
-                    this.user.account = res.data.account;
-                    this.login.result = res.data.result;
-                })
-                .catch((error) => { console.error(error) })
-        },
-        getRoomKey: function () {
+        post_CreatRoom: function () {
             return axios.get('./php/travel.php', { params: { type: "creat_room", } })
                 .then((res) => {
                     console.log(res.data);
-                    this.room.key = res.data;
+                    if ((res.data.result == 'true'))
+                        this.room.key = res.data.key;
+                    else {
+                        this.msg.title = "Error"
+                        this.msg.content = res.data.error;
+                        this.msg.dialog = true;
+                    }
                 })
                 .catch((error) => { console.error(error) })
         },
-        checkEnterRoom: function () {
+        post_EnterRoom: function () {
             return axios.get('./php/travel.php', {
                 params:
                 {
@@ -235,25 +281,25 @@ var app = new Vue({
                 }
             }).then((res) => {
                 console.log(res.data);
-                this.room.enter = res.data;
+                this.room.enter = res.data.result;
                 this.room.dialog = (!this.room.enter);
             }).catch((error) => { console.error(error) })
         },
-        getRoomData: function () {
+        post_GetRoomData: function () {
             return axios.get('./php/travel.php', {
                 params:
                 {
-                    type: "room_data",
+                    type: "read_room",
                     roomkey: this.room.key,
                 }
             }).then((res) => {
                 // console.log(JSON.parse(res.data.data));
                 // console.log(res.data);
-                this.room.result = res.data.result;
-                this.room.members = JSON.parse(res.data.data);
+                if (res.data.result)
+                    this.room.members = JSON.parse(res.data.data);
             }).catch((error) => { console.error(error) })
         },
-        leaveRoom: function () {
+        post_LeaveRoom: function () {
             if (this.room.key != null)
                 return axios.get('./php/travel.php', {
                     params:
@@ -265,22 +311,6 @@ var app = new Vue({
                 }).then((res) => {
                     // console.log(res.data);
                 }).catch((error) => { console.error(error) })
-
-        },
-        viewMember: function (account) {
-            var view_member = this.room.members.find(member => member.account == account);
-            this.info.dialog = false;
-            map.setView(new L.LatLng(view_member.lat, view_member.lng), 14);
-        },
-        copyRoomKey() {
-            let textToCopy = this.$refs.roomkey.$el.querySelector('input')
-            textToCopy.select()
-            document.execCommand("copy");
-            if (window.getSelection) { window.getSelection().removeAllRanges(); }
-            else if (document.selection) { document.selection.empty(); }
-            this.tooltip.content = "Copy!";
-            this.tooltip.show = true;
-            window.setTimeout((() => app.tooltip.show = false), 1500);
         },
     },
     mounted: function () {
@@ -295,38 +325,3 @@ var app = new Vue({
         this.leaveRoom();
     },
 })
-
-
-var id, target, options;
-
-function success(pos) {
-    var crd = pos.coords;
-    console.log(pos)
-    // 取得經緯度
-    console.log(pos.coords.latitude)
-    console.log(pos.coords.longitude)
-    app.user.lat = pos.coords.latitude;
-    app.user.lng = pos.coords.longitude;
-
-    if (target.latitude === crd.latitude && target.longitude === crd.longitude) {
-        console.log('Congratulations, you reached the target');
-        navigator.geolocation.clearWatch(id);
-    }
-}
-
-function error(err) {
-    console.warn('ERROR(' + err.code + '): ' + err.message);
-}
-
-target = {
-    latitude: 0,
-    longitude: 0
-};
-
-options = {
-    enableHighAccuracy: true,
-    timeout: 5000,
-    maximumAge: 0
-};
-
-id = navigator.geolocation.watchPosition(success, error, options);

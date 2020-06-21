@@ -67,7 +67,7 @@
                                         <v-card-text>
                                             <v-container>
                                                 <v-row>
-                                                    <v-col cols="12" sm="6" md="4">
+                                                    <v-col cols="12">
                                                         <v-select :items="icons" label="Icon" v-model="user.icon">
                                                             <template v-slot:prepend-inner>
                                                                 <img width="24" height="24"
@@ -80,12 +80,12 @@
                                                             </template>
                                                         </v-select>
                                                     </v-col>
-                                                    <v-col cols="12" sm="6" md="4">
+                                                    <v-col cols="12" sm="6" md="6">
                                                         <v-text-field :rules="[rules.required]" v-model="user.name"
                                                             label="User Name*" required>
                                                         </v-text-field>
                                                     </v-col>
-                                                    <v-col cols="12" sm="6" md="4">
+                                                    <v-col cols="12" sm="6" md="6">
                                                         <v-text-field :rules="[rules.required]" v-model="user.account"
                                                             label="Account*" required>
                                                         </v-text-field>
@@ -119,6 +119,10 @@
                     <v-card>
                         <v-card-title>
                             <span class="headline">Room</span>
+                            <v-spacer></v-spacer>
+                            <v-btn icon @click="Logout">
+                                <v-icon color="grey lighten-1">mdi-logout</v-icon>
+                            </v-btn>
                         </v-card-title>
                         <v-form ref="room_form" v-model="room.valid" lazy-validation>
                             <v-card color="basil" flat>
@@ -233,7 +237,7 @@
                             <v-icon>mdi-account-details</v-icon>
                         </v-btn>
 
-                        <v-btn value="nearby" @click="info.dialog = false">
+                        <v-btn value="nearby" @click="viewMember(user.account)">
                             <span>Nearby</span>
                             <v-icon>mdi-map-marker</v-icon>
                         </v-btn>
