@@ -318,10 +318,10 @@ var app = new Vue({
     },
     created: function () {
         $(window).bind('beforeunload', async function (e) {
-            await app.leaveRoom();
+            await app.post_LeaveRoom();
         })
     },
     beforeDestroy: function () {
-        this.leaveRoom();
+        this.post_LeaveRoom();
     },
 })
